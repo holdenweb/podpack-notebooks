@@ -1,0 +1,20 @@
+# What to publish, in what order, under what titles -- the whole curation
+# surface. build.py converts exactly the notebooks listed here and nothing
+# else. Adding, retiring or reordering a notebook is an edit here.
+#
+#   file    path to the .ipynb, relative to this repository's root
+#   title   optional; overrides the notebook's own title (metadata -> H1 -> filename)
+#   group   optional; a heading to bucket it under on the landing page
+#   slug    optional; the URL name (defaults to the file stem)
+#   hide_input  optional; true to publish outputs only, without the code cells
+#
+# `mount` must match where the site mounts the notebooks app, because the
+# landing page links to notebooks by absolute path (the same constraint pybooks
+# has with orpy's pages_prefix). Default is the app's own /notebooks.
+
+mount: /notebooks
+
+notebooks:
+  - file: notebooks/sample.ipynb
+    title: A sample notebook
+    group: Examples

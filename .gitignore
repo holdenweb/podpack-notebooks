@@ -1,0 +1,15 @@
+# Build output (pushed to a host via push-content, not committed)
+/build/
+
+# Throwaway local dev site (see devsite.py)
+/devsite.py
+/devdata/
+/devlogs/
+
+# Python / uv / tooling
+.venv/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.DS_Store

@@ -1,0 +1,56 @@
+[project]
+name = "podpack-notebooks"
+version = "0.1.0"
+description = "Publish Jupyter notebooks as static HTML on a podpack site"
+readme = "README.md"
+requires-python = ">=3.12"
+# Empty by design. The app imports only `podpack` and `podpack_pages`, and both
+# are kept out of `dependencies` (see the dependency-group note below); it has
+# no other runtime import. nbconvert is a build-time tool, not a runtime one.
+dependencies = []
+
+[[project.authors]]
+name = "Steve Holden"
+email = "steve@holdenweb.com"
+
+[build-system]
+requires = ["uv_build>=0.12.2,<0.13.0"]
+build-backend = "uv_build"
+
+# podpack AND podpack-pages are deliberately absent from `dependencies`. Both
+# are git-sourced today, and a real dependency's [tool.uv.sources] entry travels
+# with the distribution -- so a site whose own source for either differs could
+# never `uv lock` (podpack writing-an-app.md rule 1). A dependency group is
+# dev-only metadata and constrains nobody, so the tests can still build a real
+# site here. The consuming site installs both itself; holdenweb.com already
+# ships podpack-pages. Required versions are documented in the README.
+[dependency-groups]
+dev = [
+    "podpack",
+    "podpack-pages",
+    "nbconvert>=7.16",   # the build tool only -- conversion happens here, never on the server
+    "pyyaml>=6.0",       # reads notebooks.yaml, the curation index
+    "types-pyyaml>=6.0",
+    "pytest>=8.0",
+    "mypy>=1.11",
+]
+
+[tool.uv.sources]
+podpack = { git = "https://github.com/holdenweb/podpack.git" }
+podpack-pages = { git = "https://github.com/holdenweb/podpack-pages.git" }
+
+[tool.pytest.ini_options]
+# build.py sits at the repo root; put it on the path so the tests can import it
+# (pytest already adds tests/ for `from conftest import ...`).
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.mypy]
+files = ["src", "tests", "build.py"]
+mypy_path = ["tests", "."]
+
+# Build-time tools and podpack-pages (which ships no py.typed marker) carry no
+# stubs; don't fail on their internals.
+[[tool.mypy.overrides]]
+module = ["nbconvert.*", "nbformat.*", "pygments.*", "podpack_pages.*"]
+ignore_missing_imports = true
