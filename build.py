@@ -101,7 +101,10 @@ def _stylesheet() -> str:
 
 def convert(entry: dict[str, Any], exporter: HTMLExporter) -> tuple[str, str, str]:
     """Return (slug, title, fragment) for one notebooks.yaml entry."""
-    src = HERE / entry["file"]
+    # Expand `~` and absolutes before the join: `HERE / <absolute>` yields the
+    # absolute path, `HERE / <relative>` roots it at the repo, and src stays a
+    # Path so .stem works below.
+    src = HERE / Path(entry["file"]).expanduser()
     nb = nbformat.read(src, as_version=4)
     slug = str(entry.get("slug") or src.stem)
     title = _title(entry, nb, slug)
