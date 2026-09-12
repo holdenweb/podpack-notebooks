@@ -13,3 +13,7 @@ __pycache__/
 .mypy_cache/
 .pytest_cache/
 .DS_Store
+README.html
+all_notebooks.csv
+*.wp?
+review.yaml

@@ -32,6 +32,7 @@ dev = [
     "pygments>=2.17",    # build.py imports it directly for the shipped stylesheet
     "pyyaml>=6.0",       # reads notebooks.yaml, the curation index
     "types-pyyaml>=6.0",
+    "mongoengine>=0.29", # load_notebooks.py only -- the index as documents, not a runtime store
     "pytest>=8.0",
     "mypy>=1.11",
 ]
@@ -47,11 +48,11 @@ pythonpath = ["."]
 testpaths = ["tests"]
 
 [tool.mypy]
-files = ["src", "tests", "build.py"]
+files = ["src", "tests", "build.py", "load_notebooks.py"]
 mypy_path = ["tests", "."]
 
 # Build-time tools and podpack-pages (which ships no py.typed marker) carry no
 # stubs; don't fail on their internals.
 [[tool.mypy.overrides]]
-module = ["nbconvert.*", "nbformat.*", "pygments.*", "podpack_pages.*"]
+module = ["nbconvert.*", "nbformat.*", "pygments.*", "podpack_pages.*", "mongoengine.*"]
 ignore_missing_imports = true

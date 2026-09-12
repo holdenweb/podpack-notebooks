@@ -71,6 +71,30 @@ absolute path.
 `nbconvert` and `pyyaml` are build-time tools only (the dev group); the running
 app never imports them.
 
+## Reviewing candidates before publishing
+
+`notebooks.yaml` is the *publication* list — short, ordered, and what `build.py`
+converts by default. Deciding what belongs on it is a separate job with its own
+list: `review.yaml`, a scratch candidate set of the same schema. It is not
+tracked, it may point at notebooks anywhere on the laptop (outside this repo),
+and it must never be renamed into `notebooks.yaml` — the tests build the real
+`notebooks.yaml` on a CI machine where those outside paths do not exist, so
+out-of-repo paths belong only in a file the tests never read.
+
+`build.py` takes `--index` (which list) and `--out` (where to write), so a
+review list builds into the throwaway dev site — `devsite.py`, whose `devdata/`
+is gitignored — rather than into `build/`:
+
+```bash
+uv run build.py --index review.yaml --out devdata/notebooks/html-pages
+uv run flask --app "devsite:create" run --port 8470
+```
+
+Then read `http://127.0.0.1:8470/notebooks/` and delete from `review.yaml` what
+does not earn its place. Pages are re-read per request, so rebuild and refresh
+without restarting the server. When the survivors are settled they move into
+`notebooks.yaml`, and the ordinary `uv run build.py` above publishes them.
+
 ## Installing on a site
 
 Add the git source and the import name, then push the built tree to the host's
