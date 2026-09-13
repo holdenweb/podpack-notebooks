@@ -980,7 +980,7 @@ dependencies = [
 
 [[package]]
 name = "podpack-notebooks"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "." }
 
 [package.dev-dependencies]
