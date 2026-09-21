@@ -69,7 +69,7 @@ where the site mounts the app, because the landing page links notebooks by
 absolute path.
 
 `nbconvert` and `pyyaml` are build-time tools only (the dev group); the running
-app never imports them.
+need never import them, since the HTML snippets are what gets published.
 
 ## Reviewing candidates before publishing
 
