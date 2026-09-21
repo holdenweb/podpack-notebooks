@@ -4,7 +4,23 @@ version = "0.1.2+dev"
 description = "Publish Jupyter notebooks as static HTML on a podpack site"
 readme = "README.md"
 requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENCE"]
 # Empty by design. The app imports only `podpack` and `podpack_pages`, and both
+keywords = ["flask", "plugins", "web", "containers", "podman"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Framework :: Flask",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+]
 # are kept out of `dependencies` (see the dependency-group note below); it has
 # no other runtime import. nbconvert is a build-time tool, not a runtime one.
 dependencies = []
