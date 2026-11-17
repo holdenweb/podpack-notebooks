@@ -53,16 +53,31 @@ mount: /notebooks
 notebooks:
   - file: notebooks/analysis.ipynb
     title: A century of rainfall
+    owner: Steve Holden
     group: Data
 ```
+
+`owner` is optional and free text: nothing joins on it, and no column anywhere
+holds it. The app does nonetheless declare `needs_tables={"user"}`, because a
+notebook belongs to somebody and only a logged-in user may put one here — a
+site that cannot satisfy that fails at boot rather than at the first query
+(podpack ADR-0034). The two are not in tension: the declaration records the
+dependency, and matching the string to a row is work nothing does yet.
+
+The landing page puts each owner's notebooks under their own heading, in the
+order the owners first appear in the file, with `group` as a sub-heading within
+an owner. **An index where nothing has an `owner` builds exactly the page it
+built before the field existed**, so a collection adopts it one entry at a time.
 
 ```bash
 uv run build.py            # notebooks.yaml -> build/html-pages/
 ```
 
-`build.py` runs nbconvert (`--to html --template basic --embed-images`) per
-notebook, prepends the title comment, links a shared `common/notebooks.css`
-(pygments highlighting + cell layout, which podpack-pages does not ship), and
+`build.py` drives nbconvert through its Python API — an `HTMLExporter` with
+`template_name="basic"` and `embed_images = True`, plus `exclude_input` per
+entry for `hide_input` — rather than by running a command. It prepends the
+title comment, links a shared `common/notebooks.css` (pygments highlighting +
+cell layout, which podpack-pages does not ship), and
 injects MathJax 3 only where a notebook uses TeX. It writes `index.html`, one
 `<slug>.html` per notebook, and `common/notebooks.css`. `mount` must match
 where the site mounts the app, because the landing page links notebooks by
@@ -94,6 +109,69 @@ Then read `http://127.0.0.1:8470/notebooks/` and delete from `review.yaml` what
 does not earn its place. Pages are re-read per request, so rebuild and refresh
 without restarting the server. When the survivors are settled they move into
 `notebooks.yaml`, and the ordinary `uv run build.py` above publishes them.
+
+## Contributing a collection
+
+**Each contributor keeps their own notebooks, and their own `notebooks.yaml`,
+in a GitHub repository of their own.** Ask by email to have a collection
+published. The repository is then cloned, reviewed by the section above, and
+published if it is appropriate — which is a judgement, not a formality, and the
+reasons a notebook is declined are the ones below.
+
+A contributor's `notebooks.yaml` is a **proposal, not an input to the build**.
+It says which notebooks are offered, in what order, under what titles, and
+under which `owner` and `group` — the same schema as this one, so nothing has
+to be translated. What it does not do is feed `build.py`: this repository's
+`notebooks.yaml` stays the single publication list, and an entry appears there
+only when it has been read.
+
+Accepting a notebook copies it to `notebooks/<contributor>/` here, and adds an
+entry naming that path. It is deliberately a copy: `notebooks.yaml` is built by
+the test suite, on a machine that has only this repository, so every path in it
+must resolve inside the repository. Out-of-repo paths belong in `review.yaml`,
+which is exactly where a fresh clone is reviewed from before anything is
+accepted.
+
+**Give every contributed entry an explicit `slug`.** Slugs are a single flat
+namespace for the whole site — the built tree is one directory of
+`<slug>.html` — and an absent `slug` defaults to the notebook's filename stem.
+Two contributors with `analysis.ipynb` would therefore collide, and the
+collision is silent: `build.py` writes the second over the first and the
+landing page goes on linking to both. This is not a thin edge: 118 of those
+same 551 shared a stem with another notebook, within one person's collection.
+Prefixing the contributor's name is enough.
+
+Review is reading, because nothing here is executed: a notebook's outputs are
+whatever its author last saved (ADR-0001), so output that disagrees with its
+code publishes exactly as it stands. Four things to look for, the first three
+being the categories `review.yaml`'s `omitted:` list already uses, with 44
+entries behind them:
+
+- **Credentials and personal data travel in saved output.** This is the largest
+  category by some way — 22 of the first 551 candidates, against 15 and 7 for
+  the other two. A cell that once printed an API token, a connection string or
+  a list of customer email addresses carries it into the published HTML — and
+  images are inlined, so a screenshot does too. All three shapes turned up in
+  that first pass, one of them 861 distinct addresses in a single notebook.
+  The `reason:` records the shape and the count; the values were never written
+  down.
+- **Not yours to publish.** A collaborator's draft, a third-party manuscript, a
+  tutorial reproduced verbatim. Being sent a notebook is not being given
+  permission to publish it.
+- **Will not convert**, and this is not merely that entry's problem. No
+  conversion is wrapped in `try`, and `build_tree()` deletes the output tree
+  before it starts, writing pages as it goes and `index.html` last. So one
+  unconvertible notebook leaves **a half-written tree with no landing page,
+  and the previous good build already gone** — verified by putting a
+  non-notebook in the list: the entry before it was written, `index.html` was
+  not. Convert a new collection on its own, into a throwaway `--out`, before
+  adding any of it to the publication list.
+- **Raw HTML in a markdown cell is served verbatim.** nbconvert passes it
+  through and the pages kind renders the fragment with `| safe`, so a
+  `<script>` tag in a notebook becomes a `<script>` tag on the site, inside the
+  site's own origin. Read the markdown cells, not just the rendered page. This
+  is the one risk that review is the only defence against, and it is the reason
+  publication is by invitation rather than by pull request.
 
 ## Installing on a site
 

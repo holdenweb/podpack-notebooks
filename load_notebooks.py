@@ -50,10 +50,13 @@ class Entry(Document):
     slug = StringField(required=True, unique=True)
     file = StringField(required=True)
     title = StringField()
+    owner = StringField()
     group = StringField()
 
-    # Grouping is how the landing page and any review query reads the set.
-    meta = {"abstract": True, "indexes": ["group"]}
+    # Owner and group are how the landing page and any review query read the
+    # set, and they are the two fields worth asking a whole collection about --
+    # "what has Ann got?", "what is ungrouped?" -- so both are indexed.
+    meta = {"abstract": True, "indexes": ["owner", "group"]}
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__} {self.slug}>"

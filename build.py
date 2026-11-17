@@ -21,8 +21,9 @@ import argparse
 import html
 import re
 import shutil
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 import nbformat
 import yaml
@@ -32,6 +33,24 @@ from pygments.formatters import HtmlFormatter
 HERE = Path(__file__).resolve().parent
 DEFAULT_INDEX = HERE / "notebooks.yaml"
 DEFAULT_OUT = HERE / "build" / "html-pages"
+
+
+class Published(NamedTuple):
+    """One notebook, as the landing page needs to know it.
+
+    A named tuple rather than four positional fields: `owner` was the fourth
+    thing the index could say about a notebook, and a 4-tuple of strings is the
+    point at which a reader has to count commas to know which is which. Still a
+    tuple, so anything unpacking the first three keeps working.
+
+    `group` and `owner` are "" when the index does not say, never None, so the
+    landing page can test them without asking which kind of absence it has.
+    """
+
+    slug: str
+    title: str
+    group: str
+    owner: str
 
 _H1 = re.compile(r"^\s*#\s+(.+?)\s*$", re.MULTILINE)
 _HAS_TEX = re.compile(r"\$|\\\(|\\\[")
@@ -122,29 +141,55 @@ def convert(entry: dict[str, Any], exporter: HTMLExporter) -> tuple[str, str, st
     return slug, title, "\n".join(parts) + "\n"
 
 
-def landing(mount: str, published: list[tuple[str, str, str]]) -> str:
-    """The /notebooks/ index: notebooks by group, linked by absolute path so
-    the links survive wherever the site mounts the app (the pybooks caveat)."""
-    groups: dict[str, list[tuple[str, str]]] = {}
-    for slug, title, group in published:
-        groups.setdefault(group, []).append((slug, title))
+def _bucket(
+    items: list["Published"], key: Callable[["Published"], str]
+) -> dict[str, list["Published"]]:
+    """Group `items` by `key`, keeping the order each key was first seen.
+
+    Order comes from the index file, not from sorting: notebooks.yaml is a
+    curated list, so the sequence an author chose is the sequence to publish --
+    the same reason `build_tree` walks it rather than a directory.
+    """
+    buckets: dict[str, list["Published"]] = {}
+    for item in items:
+        buckets.setdefault(key(item), []).append(item)
+    return buckets
+
+
+def landing(mount: str, published: list["Published"]) -> str:
+    """The /notebooks/ index: notebooks by owner and then by group, linked by
+    absolute path so the links survive wherever the site mounts the app (the
+    pybooks caveat).
+
+    An index with no `owner` anywhere produces exactly the page it produced
+    before owners existed -- group headings at h2, in first-seen order. That is
+    deliberate and is pinned by a test: adding `owner` to one entry must not
+    reshape the page for every collection that has not adopted the field.
+    Within an owner, groups drop to h3, because the owner's heading is now
+    above them and a document whose headings skip a level is a document a
+    screen reader reads wrongly.
+    """
     out = ["<!-- title: Notebooks -->", "<h1>Notebooks</h1>"]
-    for group in groups:
-        if group:
-            out.append(f"<h2>{html.escape(group)}</h2>")
-        out.append("<ul>")
-        for slug, title in groups[group]:
-            href = f"{mount.rstrip('/')}/{slug}"
-            out.append(f'  <li><a href="{href}">{html.escape(title)}</a></li>')
-        out.append("</ul>")
+    for owner, owned in _bucket(published, lambda p: p.owner).items():
+        if owner:
+            out.append(f"<h2>{html.escape(owner)}</h2>")
+        level = 3 if owner else 2
+        for group, items in _bucket(owned, lambda p: p.group).items():
+            if group:
+                out.append(f"<h{level}>{html.escape(group)}</h{level}>")
+            out.append("<ul>")
+            for item in items:
+                href = f"{mount.rstrip('/')}/{item.slug}"
+                out.append(f'  <li><a href="{href}">{html.escape(item.title)}</a></li>')
+            out.append("</ul>")
     return "\n".join(out) + "\n"
 
 
-def build_tree(index: Path, out: Path) -> list[tuple[str, str, str]]:
+def build_tree(index: Path, out: Path) -> list["Published"]:
     """Convert every notebook in `index` into an html-pages tree at `out`.
 
-    Returns the (slug, title, group) of each published notebook. Rebuilds
-    `out` from scratch so a notebook removed from the index disappears here."""
+    Returns a `Published` per notebook. Rebuilds `out` from scratch so a
+    notebook removed from the index disappears here."""
     spec = yaml.safe_load(index.read_text())
     mount = str(spec.get("mount", "/notebooks"))
     entries = spec.get("notebooks", [])
@@ -156,11 +201,18 @@ def build_tree(index: Path, out: Path) -> list[tuple[str, str, str]]:
     exporter = HTMLExporter(template_name="basic")
     exporter.embed_images = True
 
-    published: list[tuple[str, str, str]] = []
+    published: list[Published] = []
     for entry in entries:
         slug, title, fragment = convert(entry, exporter)
         (out / f"{slug}.html").write_text(fragment)
-        published.append((slug, title, str(entry.get("group", ""))))
+        # `or ""` and not just a default: `group:` written with no value parses
+        # as None, which str() would publish as the heading "None".
+        published.append(Published(
+            slug=slug,
+            title=title,
+            group=str(entry.get("group") or ""),
+            owner=str(entry.get("owner") or ""),
+        ))
         print(f"  {entry['file']}  ->  {slug}.html   ({title})")
 
     (out / "common" / "notebooks.css").write_text(_stylesheet())

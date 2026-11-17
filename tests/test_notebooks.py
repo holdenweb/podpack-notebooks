@@ -54,6 +54,50 @@ def test_a_built_notebook_is_served(site: SiteFactory, tmp_path: Path) -> None:
     assert b'href="/notebooks/sample"' in index.data
 
 
+def test_an_index_without_owners_builds_the_page_it_always_did() -> None:
+    """The guarantee that makes `owner` adoptable one entry at a time: a
+    collection that has not used it gets group headings at h2 and no owner
+    heading, exactly as before the field existed."""
+    page = build.landing("/notebooks", [
+        build.Published("a", "A", "Data", ""),
+        build.Published("b", "B", "Data", ""),
+        build.Published("c", "C", "", ""),
+    ])
+
+    assert "<h2>Data</h2>" in page
+    assert "<h3" not in page          # nothing dropped a level
+    assert page.count("<ul>") == 2    # the group, then the ungrouped remainder
+    assert '<li><a href="/notebooks/a">A</a></li>' in page
+
+
+def test_the_landing_page_groups_by_owner_then_by_group() -> None:
+    """Owners are h2 in the order the index first names them, and a group
+    inside an owner is h3 -- so the heading levels never skip, which is what a
+    screen reader follows."""
+    page = build.landing("/notebooks", [
+        build.Published("a", "A", "Data", "Steve"),
+        build.Published("b", "B", "", "Steve"),
+        build.Published("c", "C", "", "Ann"),
+    ])
+
+    assert page.index("<h2>Steve</h2>") < page.index("<h2>Ann</h2>")
+    assert "<h3>Data</h3>" in page
+    assert "<h2>Data</h2>" not in page       # the group sits under its owner
+    assert "&lt;" not in page                # nothing here needed escaping...
+
+
+def test_owner_and_group_are_escaped() -> None:
+    """...but they are free text from a file, so they are escaped anyway."""
+    page = build.landing("/notebooks", [
+        build.Published("a", "A & B", "<b>g</b>", "<script>x</script>"),
+    ])
+
+    assert "<script>x</script>" not in page
+    assert "&lt;script&gt;x&lt;/script&gt;" in page
+    assert "&lt;b&gt;g&lt;/b&gt;" in page
+    assert "A &amp; B" in page
+
+
 def test_mathjax_is_injected_only_when_tex_is_present() -> None:
     """The guard that keeps MathJax off pages that don't need it: it fires on
     the delimiters nbconvert leaves in the body, and not on plain prose."""

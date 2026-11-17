@@ -4,9 +4,15 @@
 #
 #   file    path to the .ipynb, relative to this repository's root
 #   title   optional; overrides the notebook's own title (metadata -> H1 -> filename)
-#   group   optional; a heading to bucket it under on the landing page
+#   owner   optional; whose collection this belongs to, and the top heading on
+#           the landing page. Free text, matched exactly, and ordered by first
+#           appearance below -- there is no user table behind it.
+#   group   optional; a heading to bucket it under, within its owner
 #   slug    optional; the URL name (defaults to the file stem)
 #   hide_input  optional; true to publish outputs only, without the code cells
+#
+# An index where nothing has an `owner` builds exactly the page it built before
+# the field existed, so adopting it is per-entry and costs the others nothing.
 #
 # `mount` must match where the site mounts the notebooks app, because the
 # landing page links to notebooks by absolute path (the same constraint pybooks
