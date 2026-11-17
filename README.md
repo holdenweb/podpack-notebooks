@@ -137,8 +137,8 @@ namespace for the whole site — the built tree is one directory of
 `<slug>.html` — and an absent `slug` defaults to the notebook's filename stem.
 Two contributors with `analysis.ipynb` would therefore collide, and the
 collision is silent: `build.py` writes the second over the first and the
-landing page goes on linking to both. This is not a thin edge: 118 of those
-same 551 shared a stem with another notebook, within one person's collection.
+landing page goes on linking to both. This is not a thin edge: 118 of the
+first 551 shared a stem with another notebook, within one person's collection.
 Prefixing the contributor's name is enough.
 
 Review is reading, because nothing here is executed: a notebook's outputs are
