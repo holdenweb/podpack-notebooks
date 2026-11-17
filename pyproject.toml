@@ -1,6 +1,6 @@
 [project]
 name = "podpack-notebooks"
-version = "0.1.2+dev"
+version = "0.2.0"
 description = "Publish Jupyter notebooks as static HTML on a podpack site"
 readme = "README.md"
 requires-python = ">=3.12"
